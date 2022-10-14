@@ -83,7 +83,7 @@ var animate1 = gsap.to(cube.position, {
   },
 });
 gsap.to(cube.rotation, { x: 2 * Math.PI, duration: 5, ease: "power1.inOut" });
-// 添加点击事件，双击控制动画启动和暂停
+
 window.addEventListener("dblclick", () => {
   //   console.log(animate1);
   if (animate1.isActive()) {

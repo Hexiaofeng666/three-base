@@ -61,7 +61,7 @@ const axesHelper = new THREE.AxesHelper(5);
 scene.add(axesHelper);
 
 function render(time) {
-  console.log(time);
+  //   console.log(time);
   //   cube.position.x += 0.01;
   //   cube.rotation.x += 0.01;
 
