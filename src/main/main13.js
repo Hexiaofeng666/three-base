@@ -5,8 +5,15 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import gsap from "gsap";
 // 导入dat.gui
 import * as dat from "dat.gui";
-
-// 目标：纹理显示的算法
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";
+// 目标：设置环境纹理
+// 加载hdr环境图
+const rgbeLoader = new RGBELoader();
+rgbeLoader.loadAsync("textures/hdr/002.hdr").then((texture) => {
+  texture.mapping = THREE.EquirectangularReflectionMapping;
+  scene.background = texture;
+  scene.environment = texture;
+});
 
 // 1、创建场景
 const scene = new THREE.Scene();
@@ -23,44 +30,39 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 0, 10);
 scene.add(camera);
 
-// 导入纹理
-const textureLoader = new THREE.TextureLoader();
-const doorColorTexture = textureLoader.load("./textures/door/color.jpg");
+// 设置cube纹理加载器
+const cubeTextureLoader = new THREE.CubeTextureLoader();
+const envMapTexture = cubeTextureLoader.load([
+  "textures/environmentMaps/1/px.jpg",
+  "textures/environmentMaps/1/nx.jpg",
+  "textures/environmentMaps/1/py.jpg",
+  "textures/environmentMaps/1/ny.jpg",
+  "textures/environmentMaps/1/pz.jpg",
+  "textures/environmentMaps/1/nz.jpg",
+]);
 
-const texture = textureLoader.load("./textures/minecraft.png");
-
-// console.log(doorColorTexture);
-// 设置纹理偏移
-// doorColorTexture.offset.x = 0.5;
-// doorColorTexture.offset.y = 0.5;
-// doorColorTexture.offset.set(0.5, 0.5);
-// 纹理旋转
-// 设置旋转的原点
-// doorColorTexture.center.set(0.5, 0.5);
-// // 旋转45deg
-// doorColorTexture.rotation = Math.PI / 4;
-// 设置纹理的重复
-// doorColorTexture.repeat.set(2, 3);
-// // 设置纹理重复的模式
-// doorColorTexture.wrapS = THREE.MirroredRepeatWrapping;
-// doorColorTexture.wrapT = THREE.RepeatWrapping;
-
-// texture纹理显示设置
-// texture.minFilter = THREE.NearestFilter;
-// texture.magFilter = THREE.NearestFilter;
-texture.minFilter = THREE.LinearFilter;
-texture.magFilter = THREE.LinearFilter;
-
-// 添加物体
-const cubeGeometry = new THREE.BoxBufferGeometry(1, 1, 1);
-// 材质
-const basicMaterial = new THREE.MeshBasicMaterial({
-  color: "#ffff00",
-  //   map: doorColorTexture,
-  map: texture,
+const sphereGeometry = new THREE.SphereBufferGeometry(1, 20, 20);
+const material = new THREE.MeshStandardMaterial({
+  metalness: 0.7,
+  roughness: 0.1,
+  //   envMap: envMapTexture,
 });
-const cube = new THREE.Mesh(cubeGeometry, basicMaterial);
-scene.add(cube);
+const sphere = new THREE.Mesh(sphereGeometry, material);
+scene.add(sphere);
+
+// 给场景添加背景
+scene.background = envMapTexture;
+// 给场景所有的物体添加默认的环境贴图
+scene.environment = envMapTexture;
+
+// 灯光
+// 环境光
+const light = new THREE.AmbientLight(0xffffff, 0.5); // soft white light
+scene.add(light);
+//直线光源
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+directionalLight.position.set(10, 10, 10);
+scene.add(directionalLight);
 
 // 初始化渲染器
 const renderer = new THREE.WebGLRenderer();

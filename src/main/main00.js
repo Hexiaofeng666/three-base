@@ -5,9 +5,11 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import gsap from "gsap";
 // 导入dat.gui
 import * as dat from "dat.gui";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";
+import { MeshBasicMaterial } from "three";
+// 目标：点光源
 
-// 目标：纹理显示的算法
-
+// const gui = new dat.GUI();
 // 1、创建场景
 const scene = new THREE.Scene();
 
@@ -23,49 +25,61 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 0, 10);
 scene.add(camera);
 
-// 导入纹理
-const textureLoader = new THREE.TextureLoader();
-const doorColorTexture = textureLoader.load("./textures/door/color.jpg");
+const sphereGeometry = new THREE.SphereBufferGeometry(1, 20, 20);
+const material = new THREE.MeshStandardMaterial();
+const sphere = new THREE.Mesh(sphereGeometry, material);
+// 投射阴影
+sphere.castShadow = true;
 
-const texture = textureLoader.load("./textures/minecraft.png");
+scene.add(sphere);
 
-// console.log(doorColorTexture);
-// 设置纹理偏移
-// doorColorTexture.offset.x = 0.5;
-// doorColorTexture.offset.y = 0.5;
-// doorColorTexture.offset.set(0.5, 0.5);
-// 纹理旋转
-// 设置旋转的原点
-// doorColorTexture.center.set(0.5, 0.5);
-// // 旋转45deg
-// doorColorTexture.rotation = Math.PI / 4;
-// 设置纹理的重复
-// doorColorTexture.repeat.set(2, 3);
-// // 设置纹理重复的模式
-// doorColorTexture.wrapS = THREE.MirroredRepeatWrapping;
-// doorColorTexture.wrapT = THREE.RepeatWrapping;
+// // 创建平面
+const planeGeometry = new THREE.PlaneBufferGeometry(50, 50);
+const plane = new THREE.Mesh(planeGeometry, material);
+plane.position.set(0, -1, 0);
+plane.rotation.x = -Math.PI / 2;
+// 接收阴影
+plane.receiveShadow = true;
+scene.add(plane);
 
-// texture纹理显示设置
-// texture.minFilter = THREE.NearestFilter;
-// texture.magFilter = THREE.NearestFilter;
-texture.minFilter = THREE.LinearFilter;
-texture.magFilter = THREE.LinearFilter;
+// 灯光
+// 环境光
+const light = new THREE.AmbientLight(0xffffff, 0.5); // soft white light
+scene.add(light);
 
-// 添加物体
-const cubeGeometry = new THREE.BoxBufferGeometry(1, 1, 1);
-// 材质
-const basicMaterial = new THREE.MeshBasicMaterial({
-  color: "#ffff00",
-  //   map: doorColorTexture,
-  map: texture,
-});
-const cube = new THREE.Mesh(cubeGeometry, basicMaterial);
-scene.add(cube);
+const smallBall = new THREE.Mesh(
+  new THREE.SphereBufferGeometry(0.1, 20, 20),
+  new THREE.MeshBasicMaterial({ color: 0xff0000 })
+);
+smallBall.position.set(2, 2, 2);
+//直线光源
+const pointLight = new THREE.PointLight(0xff0000, 1);
+// pointLight.position.set(2, 2, 2);
+pointLight.castShadow = true;
+
+// 设置阴影贴图模糊度
+pointLight.shadow.radius = 20;
+// 设置阴影贴图的分辨率
+pointLight.shadow.mapSize.set(512, 512);
+pointLight.decay = 0;
+
+// 设置透视相机的属性
+smallBall.add(pointLight);
+scene.add(smallBall);
+
+// gui.add(pointLight.position, "x").min(-5).max(5).step(0.1);
+
+// gui.add(pointLight, "distance").min(0).max(5).step(0.001);
+// gui.add(pointLight, "decay").min(0).max(5).step(0.01);
 
 // 初始化渲染器
 const renderer = new THREE.WebGLRenderer();
 // 设置渲染的尺寸大小
 renderer.setSize(window.innerWidth, window.innerHeight);
+// 开启场景中的阴影贴图
+renderer.shadowMap.enabled = true;
+renderer.physicallyCorrectLights = true;
+
 // console.log(renderer);
 // 将webgl渲染的canvas内容添加到body
 document.body.appendChild(renderer.domElement);
@@ -85,6 +99,10 @@ scene.add(axesHelper);
 const clock = new THREE.Clock();
 
 function render() {
+  let time = clock.getElapsedTime();
+  smallBall.position.x = Math.sin(time) * 3;
+  smallBall.position.z = Math.cos(time) * 3;
+  smallBall.position.y = 2 + Math.sin(time * 10) / 2;
   controls.update();
   renderer.render(scene, camera);
   //   渲染下一帧的时候就会调用render函数

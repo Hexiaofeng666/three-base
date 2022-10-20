@@ -5,8 +5,9 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import gsap from "gsap";
 // 导入dat.gui
 import * as dat from "dat.gui";
+import { color } from "dat.gui";
 
-// 目标：纹理显示的算法
+// 目标：掌握轻量级图形界面
 
 // 1、创建场景
 const scene = new THREE.Scene();
@@ -23,44 +24,58 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 0, 10);
 scene.add(camera);
 
-// 导入纹理
-const textureLoader = new THREE.TextureLoader();
-const doorColorTexture = textureLoader.load("./textures/door/color.jpg");
-
-const texture = textureLoader.load("./textures/minecraft.png");
-
-// console.log(doorColorTexture);
-// 设置纹理偏移
-// doorColorTexture.offset.x = 0.5;
-// doorColorTexture.offset.y = 0.5;
-// doorColorTexture.offset.set(0.5, 0.5);
-// 纹理旋转
-// 设置旋转的原点
-// doorColorTexture.center.set(0.5, 0.5);
-// // 旋转45deg
-// doorColorTexture.rotation = Math.PI / 4;
-// 设置纹理的重复
-// doorColorTexture.repeat.set(2, 3);
-// // 设置纹理重复的模式
-// doorColorTexture.wrapS = THREE.MirroredRepeatWrapping;
-// doorColorTexture.wrapT = THREE.RepeatWrapping;
-
-// texture纹理显示设置
-// texture.minFilter = THREE.NearestFilter;
-// texture.magFilter = THREE.NearestFilter;
-texture.minFilter = THREE.LinearFilter;
-texture.magFilter = THREE.LinearFilter;
-
 // 添加物体
-const cubeGeometry = new THREE.BoxBufferGeometry(1, 1, 1);
-// 材质
-const basicMaterial = new THREE.MeshBasicMaterial({
-  color: "#ffff00",
-  //   map: doorColorTexture,
-  map: texture,
-});
-const cube = new THREE.Mesh(cubeGeometry, basicMaterial);
+// 创建几何体
+const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+// 根据几何体和材质创建物体
+const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+
+// 修改物体的位置
+// cube.position.set(5, 0, 0);
+// cube.position.x = 3;
+// 缩放
+// cube.scale.set(3, 2, 1);
+// cube.scale.x = 5;
+// 旋转
+cube.rotation.set(Math.PI / 4, 0, 0, "XZY");
+
+// 将几何体添加到场景中
 scene.add(cube);
+
+console.log(cube);
+const gui = new dat.GUI();
+gui
+  .add(cube.position, "x")
+  .min(0)
+  .max(5)
+  .step(0.01)
+  .name("移动x轴")
+  .onChange((value) => {
+    console.log("值被修改：", value);
+  })
+  .onFinishChange((value) => {
+    console.log("完全停下来:", value);
+  });
+//   修改物体的颜色
+const params = {
+  color: "#ffff00",
+  fn: () => {
+    //   让立方体运动起来
+    gsap.to(cube.position, { x: 5, duration: 2, yoyo: true, repeat: -1 });
+  },
+};
+gui.addColor(params, "color").onChange((value) => {
+  console.log("值被修改：", value);
+  cube.material.color.set(value);
+});
+// 设置选项框
+gui.add(cube, "visible").name("是否显示");
+
+var folder = gui.addFolder("设置立方体");
+folder.add(cube.material, "wireframe");
+// 设置按钮点击触发某个事件
+folder.add(params, "fn").name("立方体运动");
 
 // 初始化渲染器
 const renderer = new THREE.WebGLRenderer();
@@ -83,6 +98,19 @@ const axesHelper = new THREE.AxesHelper(5);
 scene.add(axesHelper);
 // 设置时钟
 const clock = new THREE.Clock();
+
+window.addEventListener("dblclick", () => {
+  const fullScreenElement = document.fullscreenElement;
+  if (!fullScreenElement) {
+    //   双击控制屏幕进入全屏，退出全屏
+    // 让画布对象全屏
+    renderer.domElement.requestFullscreen();
+  } else {
+    //   退出全屏，使用document对象
+    document.exitFullscreen();
+  }
+  //   console.log(fullScreenElement);
+});
 
 function render() {
   controls.update();

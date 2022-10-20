@@ -3,10 +3,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 // 导入动画库
 import gsap from "gsap";
+// 导入dat.gui
+import * as dat from "dat.gui";
 
-// console.log(THREE);
-
-// 目标：js控制画面全屏
+// 目标：标准网格材质(MeshStandardMaterial)
 
 // 1、创建场景
 const scene = new THREE.Scene();
@@ -23,26 +23,61 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 0, 10);
 scene.add(camera);
 
+// 导入纹理
+const textureLoader = new THREE.TextureLoader();
+const doorColorTexture = textureLoader.load("./textures/door/color.jpg");
+const doorAplhaTexture = textureLoader.load("./textures/door/alpha.jpg");
+const doorAoTexture = textureLoader.load(
+  "./textures/door/ambientOcclusion.jpg"
+);
+//导入置换贴图
+const doorHeightTexture = textureLoader.load("./textures/door/height.jpg");
+
 // 添加物体
-// 创建几何体
-const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-// 根据几何体和材质创建物体
-const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-
-// 修改物体的位置
-// cube.position.set(5, 0, 0);
-// cube.position.x = 3;
-// 缩放
-// cube.scale.set(3, 2, 1);
-// cube.scale.x = 5;
-// 旋转
-cube.rotation.set(Math.PI / 4, 0, 0, "XZY");
-
-// 将几何体添加到场景中
+const cubeGeometry = new THREE.BoxBufferGeometry(1, 1, 1, 100, 100, 100);
+// 材质
+const material = new THREE.MeshStandardMaterial({
+  color: "#ffff00",
+  map: doorColorTexture,
+  alphaMap: doorAplhaTexture,
+  transparent: true,
+  aoMap: doorAoTexture,
+  aoMapIntensity: 1,
+  displacementMap: doorHeightTexture,
+  displacementScale: 0.1,
+  //   opacity: 0.3,
+  //   side: THREE.DoubleSide,
+});
+material.side = THREE.DoubleSide;
+const cube = new THREE.Mesh(cubeGeometry, material);
 scene.add(cube);
+// 给cube添加第二组uv
+cubeGeometry.setAttribute(
+  "uv2",
+  new THREE.BufferAttribute(cubeGeometry.attributes.uv.array, 2)
+);
 
-console.log(cube);
+// 添加平面
+const planeGeometry = new THREE.PlaneBufferGeometry(1, 1, 200, 200);
+const plane = new THREE.Mesh(planeGeometry, material);
+plane.position.set(1.5, 0, 0);
+
+scene.add(plane);
+// console.log(plane);
+// 给平面设置第二组uv
+planeGeometry.setAttribute(
+  "uv2",
+  new THREE.BufferAttribute(planeGeometry.attributes.uv.array, 2)
+);
+
+// 灯光
+// 环境光
+const light = new THREE.AmbientLight(0xffffff, 0.5); // soft white light
+scene.add(light);
+//直线光源
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+directionalLight.position.set(10, 10, 10);
+scene.add(directionalLight);
 
 // 初始化渲染器
 const renderer = new THREE.WebGLRenderer();
@@ -65,20 +100,6 @@ const axesHelper = new THREE.AxesHelper(5);
 scene.add(axesHelper);
 // 设置时钟
 const clock = new THREE.Clock();
-
-window.addEventListener("dblclick", () => {
-  const fullScreenElement = document.fullscreenElement;
-  console.log(fullScreenElement);
-  if (!fullScreenElement) {
-    //   双击控制屏幕进入全屏，退出全屏
-    // 让画布对象全屏
-    renderer.domElement.requestFullscreen();
-  } else {
-    //   退出全屏，使用document对象
-    document.exitFullscreen();
-  }
-  //   console.log(fullScreenElement);
-});
 
 function render() {
   controls.update();

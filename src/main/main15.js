@@ -5,9 +5,16 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import gsap from "gsap";
 // 导入dat.gui
 import * as dat from "dat.gui";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";
+// 目标：阴影的属性与投影相机原理
+// 灯光阴影
+// 1、材质要满足能够对光照有反应
+// 2、设置渲染器开启阴影的计算 renderer.shadowMap.enabled = true;
+// 3、设置光照投射阴影 directionalLight.castShadow = true;
+// 4、设置物体投射阴影 sphere.castShadow = true;
+// 5、设置物体接收阴影 plane.receiveShadow = true;
 
-// 目标：标准网格材质(MeshStandardMaterial)
-
+const gui = new dat.GUI();
 // 1、创建场景
 const scene = new THREE.Scene();
 
@@ -23,52 +30,21 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 0, 10);
 scene.add(camera);
 
-// 导入纹理
-const textureLoader = new THREE.TextureLoader();
-const doorColorTexture = textureLoader.load("./textures/door/color.jpg");
-const doorAplhaTexture = textureLoader.load("./textures/door/alpha.jpg");
-const doorAoTexture = textureLoader.load(
-  "./textures/door/ambientOcclusion.jpg"
-);
-//导入置换贴图
-const doorHeightTexture = textureLoader.load("./textures/door/height.jpg");
+const sphereGeometry = new THREE.SphereBufferGeometry(1, 20, 20);
+const material = new THREE.MeshStandardMaterial();
+const sphere = new THREE.Mesh(sphereGeometry, material);
+// 投射阴影
+sphere.castShadow = true;
+scene.add(sphere);
 
-// 添加物体
-const cubeGeometry = new THREE.BoxBufferGeometry(1, 1, 1, 100, 100, 100);
-// 材质
-const material = new THREE.MeshStandardMaterial({
-  color: "#ffff00",
-  map: doorColorTexture,
-  alphaMap: doorAplhaTexture,
-  transparent: true,
-  aoMap: doorAoTexture,
-  aoMapIntensity: 1,
-  displacementMap: doorHeightTexture,
-  displacementScale: 0.1,
-  //   opacity: 0.3,
-  //   side: THREE.DoubleSide,
-});
-material.side = THREE.DoubleSide;
-const cube = new THREE.Mesh(cubeGeometry, material);
-scene.add(cube);
-// 给cube添加第二组uv
-cubeGeometry.setAttribute(
-  "uv2",
-  new THREE.BufferAttribute(cubeGeometry.attributes.uv.array, 2)
-);
-
-// 添加平面
-const planeGeometry = new THREE.PlaneBufferGeometry(1, 1, 200, 200);
+// // 创建平面
+const planeGeometry = new THREE.PlaneBufferGeometry(10, 10);
 const plane = new THREE.Mesh(planeGeometry, material);
-plane.position.set(1.5, 0, 0);
-
+plane.position.set(0, -1, 0);
+plane.rotation.x = -Math.PI / 2;
+// 接收阴影
+plane.receiveShadow = true;
 scene.add(plane);
-// console.log(plane);
-// 给平面设置第二组uv
-planeGeometry.setAttribute(
-  "uv2",
-  new THREE.BufferAttribute(planeGeometry.attributes.uv.array, 2)
-);
 
 // 灯光
 // 环境光
@@ -76,14 +52,40 @@ const light = new THREE.AmbientLight(0xffffff, 0.5); // soft white light
 scene.add(light);
 //直线光源
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-// 光的位置
-directionalLight.position.set(10, 10, 10);
+directionalLight.position.set(5, 5, 5);
+directionalLight.castShadow = true;
+
+// 设置阴影贴图模糊度
+directionalLight.shadow.radius = 20;
+// 设置阴影贴图的分辨率
+directionalLight.shadow.mapSize.set(4096, 4096);
+// console.log(directionalLight.shadow);
+
+// 设置平行光投射相机的属性
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 500;
+directionalLight.shadow.camera.top = 5;
+directionalLight.shadow.camera.bottom = -5;
+directionalLight.shadow.camera.left = -5;
+directionalLight.shadow.camera.right = 5;
+
 scene.add(directionalLight);
+gui
+  .add(directionalLight.shadow.camera, "near")
+  .min(0)
+  .max(10)
+  .step(0.1)
+  .onChange(() => {
+    directionalLight.shadow.camera.updateProjectionMatrix();
+  });
 
 // 初始化渲染器
 const renderer = new THREE.WebGLRenderer();
 // 设置渲染的尺寸大小
 renderer.setSize(window.innerWidth, window.innerHeight);
+// 开启场景中的阴影贴图
+renderer.shadowMap.enabled = true;
+
 // console.log(renderer);
 // 将webgl渲染的canvas内容添加到body
 document.body.appendChild(renderer.domElement);
